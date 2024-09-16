@@ -1,0 +1,112 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Display with Coordinates</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #image-container {
+            position: relative;
+        }
+
+            #image-container img {
+                display: block;
+                width: 100%; /* Ensure the image fits the container */
+            }
+    </style>
+</head>
+<body ng-app="app-redshift-data" ng-controller="redshiftDataController as vm">
+    <div class="container mt-4">
+        <!-- Image Display Row -->
+        <div class="row">
+            <div class="col-md-12">
+                <div id="image-container">
+                    <img ng-src="{{vm.image}}" alt="Captured Image" class="img-fluid" ng-if="vm.image" ng-mousemove="vm.trackMouse($event)" />
+                    <p ng-if="!vm.image">Loading image...</p>
+                    <p ng-if="vm.errorMessage">{{ vm.errorMessage }}</p>
+                </div>
+            </div>
+        </div>
+        <!-- Textbox and Buttons Row -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label for="textInput">Coordinates:</label>
+                    <input type="text" id="textInput" class="form-control" ng-model="vm.textInput" readonly />
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary" ng-click="vm.button1Action()">Button 1</button>
+                    <button type="button" class="btn btn-secondary" ng-click="vm.button2Action()">Button 2</button>
+                    <button type="button" class="btn btn-success" ng-click="vm.button3Action()">Button 3</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <script>
+            angular.module("app-redshift-data", ['ngSanitize', 'ngAnimate', 'ngTouch'])
+                .controller("redshiftDataController", function ($http, $timeout) {
+                    var vm = this;
+
+                    vm.image = '';
+                    vm.errorMessage = '';
+                    vm.textInput = '';
+
+                    // Function to fetch the image
+                    vm.getCaptureImage = function () {
+                        $http.get('api/data/GetRedshiftData')
+                            .then(function (response) {
+                                vm.image = 'data:image/jpeg;base64,' + response.data;
+                            })
+                            .catch(function (error) {
+                                console.error('Error fetching image:', error);
+                                vm.errorMessage = 'Failed to load image. Please try again later.';
+                            });
+                    };
+
+                    // Call the function to load the image when the controller initializes
+                    vm.getCaptureImage();
+
+                    // Track mouse movements
+                    vm.trackMouse = function (event) {
+                        var image = event.target;
+                        var rect = image.getBoundingClientRect();
+
+                        // Calculate coordinates relative to the image
+                        var x = event.clientX - rect.left;
+                        var y = event.clientY - rect.top;
+
+                        // Calculate coordinates relative to the screen
+                        var screenX = event.clientX;
+                        var screenY = event.clientY;
+
+                        // Update textbox with coordinates
+                        vm.textInput = `Image X: ${x}, Y: ${y} | Screen X: ${screenX}, Y: ${screenY}`;
+                        $timeout(function () {
+                            // Ensure AngularJS digest cycle runs for updating the view
+                            $scope.$apply();
+                        });
+                    };
+
+                    // Actions for buttons
+                    vm.button1Action = function () {
+                        console.log('Button 1 clicked');
+                    };
+
+                    vm.button2Action = function () {
+                        console.log('Button 2 clicked');
+                    };
+
+                    vm.button3Action = function () {
+                        console.log('Button 3 clicked');
+                    };
+                });
+        </script>
+    }
+</body>
+</html>
