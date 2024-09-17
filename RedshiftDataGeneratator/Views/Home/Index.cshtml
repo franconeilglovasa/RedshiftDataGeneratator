@@ -29,17 +29,42 @@
                 </div>
             </div>
         </div>
-        <!-- Textbox and Buttons Row -->
+
+        <!-- Textbox for Mouse Coordinates -->
         <div class="row mt-4">
             <div class="col-md-12">
                 <div class="form-group">
-                    <label for="textInput">Coordinates:</label>
+                    <label for="textInput">Coordinates (Mouse Move):</label>
                     <input type="text" id="textInput" class="form-control" ng-model="vm.textInput" readonly />
                 </div>
+            </div>
+        </div>
+
+        <!-- New Textbox for Spacebar Press -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label for="spacebarInput">Coordinates (Spacebar Press):</label>
+                    <input type="text" id="spacebarInput" class="form-control" ng-model="vm.spacebarInput" readonly />
+                    <label for="spacebarInput">Commands:</label>
+                    <input type="text" id="spacebarInput" class="form-control" ng-model="vm.commands"  />
+                    <label for="spacebarInput">Keypress:</label>
+                    <input type="text" id="spacebarInput" class="form-control" ng-model="vm.keypress"  />
+                    <label for="spacebarInput">Alt Tab Mins:</label>
+                    <input type="text" id="spacebarInput" class="form-control" ng-model="vm.alttabMins"  />
+                </div>
+            </div>
+        </div>
+
+        <!-- Textbox and Buttons Row -->
+        <div class="row mt-4">
+            <div class="col-md-12">
                 <div class="btn-group">
-                    <button type="button" class="btn btn-primary" ng-click="vm.button1Action()">Button 1</button>
-                    <button type="button" class="btn btn-secondary" ng-click="vm.button2Action()">Button 2</button>
-                    <button type="button" class="btn btn-success" ng-click="vm.button3Action()">Button 3</button>
+                    <button type="button" class="btn btn-primary" ng-click="vm.button1Action()">Move Mouse Pointer</button>
+                    <button type="button" class="btn btn-secondary" ng-click="vm.button2Action()">Commands</button>
+                    <button type="button" class="btn btn-success" ng-click="vm.button3Action()">Move and Mouse Click</button>
+                    <button type="button" class="btn btn-primary" ng-click="vm.button4Action()">ExecuteKeys</button>
+                    <button type="button" class="btn btn-primary" ng-click="vm.startAltTab(vm.alttabMins)">start Alt tabs</button>
                 </div>
             </div>
         </div>
@@ -50,14 +75,22 @@
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
         <script>
             angular.module("app-redshift-data", ['ngSanitize', 'ngAnimate', 'ngTouch'])
-                .controller("redshiftDataController", function ($http, $timeout) {
+                .controller("redshiftDataController", function ($http, $timeout, $window, $scope) {
                     var vm = this;
 
                     vm.image = '';
                     vm.errorMessage = '';
                     vm.textInput = '';
+                    vm.spacebarInput = '';
+                    vm.screenX;
+                    vm.screenY;
 
-                    // Function to fetch the image
+                    vm.commands;
+                    vm.keypress;
+
+                    vm.alttabMins = 2;
+
+   
                     vm.getCaptureImage = function () {
                         $http.get('api/data/GetRedshiftData')
                             .then(function (response) {
@@ -69,42 +102,101 @@
                             });
                     };
 
-                    // Call the function to load the image when the controller initializes
                     vm.getCaptureImage();
 
-                    // Track mouse movements
                     vm.trackMouse = function (event) {
                         var image = event.target;
                         var rect = image.getBoundingClientRect();
 
-                        // Calculate coordinates relative to the image
                         var x = event.clientX - rect.left;
                         var y = event.clientY - rect.top;
 
-                        // Calculate coordinates relative to the screen
-                        var screenX = event.clientX;
-                        var screenY = event.clientY;
+                        vm.screenX = event.clientX;
+                        vm.screenY = event.clientY;
 
-                        // Update textbox with coordinates
-                        vm.textInput = `Image X: ${x}, Y: ${y} | Screen X: ${screenX}, Y: ${screenY}`;
+                        vm.textInput = `Image X: ${x}, Y: ${y} | Screen X: ${vm.screenX}, Y: ${vm.screenY}`;
+
+
                         $timeout(function () {
-                            // Ensure AngularJS digest cycle runs for updating the view
                             $scope.$apply();
                         });
                     };
 
-                    // Actions for buttons
                     vm.button1Action = function () {
-                        console.log('Button 1 clicked');
+
+                        console.log("screenx", vm.screenX);
+                        console.log("screenY", vm.screenY);
+                        $http.put('api/data/putredshiftsched', { x: vm.screenX, y: vm.screenY })
+                            .then(function (response) {
+                                console.log("Action Clicked", response.data);
+                            })
+                            .catch(function (error) {
+                                console.error('Error:', error);
+                                vm.errorMessage = 'Failed to perform action. Please try again later.';
+                            });
                     };
 
                     vm.button2Action = function () {
                         console.log('Button 2 clicked');
                     };
 
+                    vm.button4Action = function() {
+
+                    }
+
                     vm.button3Action = function () {
                         console.log('Button 3 clicked');
+                        console.log("screenx", vm.screenX);
+                        console.log("screenY", vm.screenY);
+                        $http.put('api/data/MoveAndClick', { x: vm.screenX, y: vm.screenY })
+                            .then(function (response) {
+                                console.log("Action Clicked", response.data);
+                            })
+                            .catch(function (error) {
+                                console.error('Error:', error);
+                                vm.errorMessage = 'Failed to perform action. Please try again later.';
+                            });
                     };
+
+                    vm.startAltTab = function (minutes) {
+                        $http.put('api/data/AltTab?minutes=' + minutes)
+                            .then(function (response) {
+                                console.log(response.data);
+                            })
+                            .catch(function (error) {
+                                console.error('Error:', error);
+                                vm.errorMessage = 'Failed to perform Alt+Tab action. Please try again later.';
+                            });
+                    };
+
+
+
+                    angular.element($window).on('keydown', function (event) {
+                        if (event.key === ' ') {
+                            event.preventDefault();
+
+
+                            vm.spacebarInput = vm.textInput;
+                            $timeout(function () {
+                                $scope.$apply();
+                            });
+                        }
+                    });
+
+                    angular.element($window).on('click', function (event) {
+                        vm.spacebarInput = vm.textInput;
+                        $timeout(function () {
+                            $scope.$apply();
+                        });
+                    });
+
+                    angular.element($window).on('touchstart', function (event) {
+                        vm.spacebarInput = vm.textInput;
+                        $timeout(function () {
+                            $scope.$apply();
+                        });
+                    });
+
                 });
         </script>
     }
