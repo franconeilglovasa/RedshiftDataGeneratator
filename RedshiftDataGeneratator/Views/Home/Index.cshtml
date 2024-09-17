@@ -90,7 +90,7 @@
 
                     vm.alttabMins = 2;
 
-   
+
                     vm.getCaptureImage = function () {
                         $http.get('api/data/GetRedshiftData')
                             .then(function (response) {
@@ -102,7 +102,11 @@
                             });
                     };
 
-                    vm.getCaptureImage();
+                    // Call the getCaptureImage function every half second (500 milliseconds)
+                    setInterval(function () {
+                        vm.getCaptureImage();
+                    }, 500);
+
 
                     vm.trackMouse = function (event) {
                         var image = event.target;
